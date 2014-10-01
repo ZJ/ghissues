@@ -95,6 +95,9 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
 		
 		$http = new DokuHTTPClient();
 		
+		$http->agent = substr($http->agent,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
+		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
+		
 		//$renderOutput = '<p>Meta: '.p_get_metadata($renderer, 'ghissues').'</p>';
 		
 		$apicall = $http->get($data['url']); //GETurl
@@ -104,7 +107,10 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
 		$renderOutput .= '<p>Rate Limit: '.htmlentities($http->resp_headers['x-ratelimit-remaining']).'</p>';
 		$renderOutput .= '<p>URL: '.htmlentities($data['url']).'</p>';
 		$renderOutput .= '<p>URL Hash: '.htmlentities($data['hash']).'</p>';
-		$renderOutput .= '<p>'.$conf['savedir'].' '.$conf['cachedir'].' '.'</p>';
+
+		$renderOutput .= '<p>'.htmlentities($apicall).'</p>';
+
+
 		if($apicall !== false){
     		$json = new JSON();
     		$resp = $json->decode($apicall);
@@ -126,7 +132,7 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
     			//$renderOutput .= ' <img src="'.htmlentities($issue->user->avatar_url).'" alt="'.htmlentities($issue->user->login);
     			//$renderOutput .= '" width="15" height="15">';
     			//$renderOutput .= ' on ';
-    			$renderOutput .= htmlentities(date('D, M jS Y \a\t g:i A T',strtotime($issue->created_at)));
+    			$renderOutput .= htmlentities(strftime($conf['dformat'],strtotime($issue->created_at)));
     			$renderOutput .= '</div></div>'."\n";
 			}
 			$renderOutput .= '</div>';
