@@ -1,0 +1,61 @@
+.ghissues_plugin_label_dark {
+    color:#ffffff;
+    font-weight:normal;
+    font-size:smaller;
+    margin-left=2px;
+    margin-right=2px;
+    padding:0.1em 0.3em;
+    border-radius:4px;
+}
+
+.ghissues_plugin_label_light {
+    color:#000000;
+    font-weight:normal;
+    font-size:smaller;
+    margin-left=2px;
+    margin-right=2px;
+    padding:0.1em 0.3em;
+    border-radius:4px;
+}
+
+.ghissues_plugin_box {
+	color:__text__;
+	border:__border__;
+	border-style:solid;
+	border-width:1px;
+	border-radius:5px;
+	padding:0px;
+}
+
+.ghissues_plugin_box_header {
+	color:__text__;
+	font-size:larger;
+	font-weight:bold;
+	background-color:__background_alt__;
+	border-style:none;
+	padding:0.3em 0.3em 0.3em 0.8em;
+}
+.ghissues_plugin_issue_line {
+	color:__text__;
+	border:__border__;
+	border-style:solid none none none;
+	border-width:1px;
+	padding:0.3em 0.3em 0.3em 0.8em;
+}
+
+.ghissues_plugin_issue_title {
+	color:inherit;
+	border-style:none;
+	padding:0.1em;
+	margin-right:2px;
+	font-size:larger;
+	font-weight:bold;
+}
+
+.ghissues_plugin_issue_report {
+	color:inherit;
+	border-style:none;
+	padding:0.1em;
+	font-size:smaller;
+	font-style:italic;
+}
