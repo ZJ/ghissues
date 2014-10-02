@@ -6,5 +6,6 @@
  */
 
 
-$meta['ghissueuser'] = array('string');
+$meta['ghissueuser']    = array('string');                 // Github Username, used for User-Agent and Authentication
+$meta['ghissuerefresh'] = array('numeric', '_min' => -1 ); // Min time between API calls (per unique request URL)
 

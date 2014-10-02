@@ -59,3 +59,7 @@
 	font-size:smaller;
 	font-style:italic;
 }
+
+.ghissues_plugin_api_err {
+	font-size:large;
+}
