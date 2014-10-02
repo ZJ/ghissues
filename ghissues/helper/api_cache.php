@@ -30,7 +30,7 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
             )
         );
     }
-
+	// Master cache checker.  First checks if the cache expired, then checks if the page is older than the cache
 	public function checkIssuesCache( $apiUrl, $page ) {
 		return true;
 	}
@@ -80,7 +80,7 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
 			// Need a call to handle multi-page results
 			
 			// Need a call to build the table from the response
-			$newTable = '';
+			$newTable = formatApiResponse($apiResp);
 			
 			if ( $newTable != $cache->retrieveCache() ) {
 				if (!$cache->storeCache($newTable)) {				
@@ -105,7 +105,50 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
 			return false;
 		}
 		return true;
-	}	
+	}
+	
+	public function formatApiResponse($rawJSON) {
+		$json = new JSON();
+    	$response = $json->decode($rawJSON);
+		
+		// Assume the top is already there, as that can be built by without the API request.
+		$outputXML = "<ul>\n";
+		foreach($response as $issueIdx => $issue) {
+			$outputXML .= '<li class="ghissues_plugin_issue_line">'."\n";
+			$outputXML .= '<div>'."\n";
+			$outputXML .= $this->external_link($issue->html_url, htmlentities('#'.$issue->number.': '.$issue->title), '"ghissues_plugin_issue_title"', '_blank');
+			$outputXML .= "\n".'<span class="ghissues_plugin_issue_labels">';
+			foreach($issue->labels as $label) {
+				$outputXML .= '<span style="background-color:#'.$label->color.'"';
+    			$outputXML .= ' class='.$this->_getSpanClassFromBG($label->color).'>';
+				$outputXML .= htmlentities($label->name);
+    			$outputXML .= '</span>'."\n"; 				
+    		}
+			$outputXML .= '</span></div>'."\n";
+			$outputXML .= '<div class="ghissues_plugin_issue_report">'."\n";
+			$outputXML .= sprintf($this->getLang('reporter'),htmlentities($issue->user->login));
+			$outputXML .= htmlentities(strftime($conf['dformat'],strtotime($issue->created_at)));
+			$outputXML .= '</div></ul>'."\n";
+		}
+		
+		return $outputXML;
+	}
+	
+	private function _getSpanClassFromBG($htmlbg) {
+    	$colorval = hexdec($htmlbg);
+
+    	$red = 0xFF & ($colorval >> 0x10);
+    	$green = 0xFF & ($colorval >> 0x08);
+    	$blue = 0xFF & $colorval;
+    	
+    	$lum = 1.0 - ( 0.299 * $red + 0.587 * $green + 0.114 * $blue)/255.0;
+    	
+    	if( $lum < 0.5 ) {
+    		return '"ghissues_light"';
+    	} else {
+    		return '"ghissues_dark"';
+    	}
+    }
 }
 
 class cache_ghissues_api extends cache {

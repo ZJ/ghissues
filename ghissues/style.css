@@ -1,17 +1,18 @@
-.ghissues_plugin_label_dark {
-    color:#ffffff;
+.ghissues_plugin_labels {
     font-weight:normal;
     font-size:smaller;
+}
+
+.ghissues_plugin_labels>.ghissues_dark {
+    color:#ffffff;
     margin-left=2px;
     margin-right=2px;
     padding:0.1em 0.3em;
     border-radius:4px;
 }
 
-.ghissues_plugin_label_light {
+.ghissues_plugin_labels>.ghissues_light {
     color:#000000;
-    font-weight:normal;
-    font-size:smaller;
     margin-left=2px;
     margin-right=2px;
     padding:0.1em 0.3em;
