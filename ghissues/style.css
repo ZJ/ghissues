@@ -1,9 +1,15 @@
+.ghissues_list {
+	list-style-type: none;
+	padding: 0px;
+	margin: 0px;
+}
+
 .ghissues_plugin_labels {
-    font-weight:normal;
+    font-weight:bold;
     font-size:smaller;
 }
 
-.ghissues_plugin_labels>.ghissues_dark {
+.ghissues_dark {
     color:#ffffff;
     margin-left=2px;
     margin-right=2px;
@@ -11,7 +17,7 @@
     border-radius:4px;
 }
 
-.ghissues_plugin_labels>.ghissues_light {
+.ghissues_light {
     color:#000000;
     margin-left=2px;
     margin-right=2px;
@@ -51,6 +57,26 @@
 	margin-right:2px;
 	font-size:larger;
 	font-weight:bold;
+}
+
+a:link.ghissues_plugin_issue_title {
+	color:__text__;
+	text-decoration: none;
+}
+
+a:visited.ghissues_plugin_issue_title {
+	color:__text__;
+	text-decoration: none;
+}
+
+a:hover.ghissues_plugin_issue_title {
+	color:__text_alt__;
+	text-decoration: underline;
+}
+
+a:active.ghissues_plugin_issue_title {
+	color:__text_alt__;
+	text-decoration: underline;
 }
 
 .ghissues_plugin_issue_report {

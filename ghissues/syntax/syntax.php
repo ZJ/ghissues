@@ -90,78 +90,22 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
         	return true;
         }
 		
-		if($mode != 'xhtml') return false;
+		if ($mode != 'xhtml') return false;
 		global $conf;
 		
-		$http = new DokuHTTPClient();
-		
-		$http->agent = substr($http->agent,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
-		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
-		
-		//$renderOutput = '<p>Meta: '.p_get_metadata($renderer, 'ghissues').'</p>';
-		
-		$apicall = $http->get($data['url']); //GETurl
-		$renderOutput .= '<p>'.htmlentities(var_export($http->resp_headers, TRUE)).'</p>';
-		$renderOutput .= '<p>ETag: '.htmlentities($http->resp_headers['etag']).'</p>';
-		$renderOutput .= '<p>Response: '.htmlentities($http->resp_headers['status']).'</p>';
-		$renderOutput .= '<p>Rate Limit: '.htmlentities($http->resp_headers['x-ratelimit-remaining']).'</p>';
-		$renderOutput .= '<p>URL: '.htmlentities($data['url']).'</p>';
-		$renderOutput .= '<p>URL Hash: '.htmlentities($data['hash']).'</p>';
-
-		$renderOutput .= '<p>'.htmlentities($apicall).'</p>';
-
-
-		if($apicall !== false){
-    		$json = new JSON();
-    		$resp = $json->decode($apicall);
-			$renderOutput .= '<div class="ghissues_plugin_box etag-'.substr($http->resp_headers['etag'],1,-2).'">';
-    		$renderOutput .= '<div class="ghissues_plugin_box_header">'.htmlentities($data['header']).'</div>';
-    		foreach($resp as $listind => $issue) {
-				$renderOutput .= '<div class="ghissues_plugin_issue_line">';
-				$renderOutput .= '<div class="ghissues_plugin_issue_title">';
-				$renderOutput .= htmlentities('#'.$issue->number.': ');
-    			$renderOutput .= htmlentities($issue->title);
-    			foreach($issue->labels as $label) {
-					$renderOutput .= '<span style="background-color:#'.$label->color.'"';
-    				$renderOutput .= ' class='.$this->getSpanClassFromBG($label->color).'>';
-    				$renderOutput .= htmlentities($label->name);
-    				$renderOutput .= '</span>'."\n"; 				
-    			}
-    			$renderOutput .= '</div><div class="ghissues_plugin_issue_report">';
-    			$renderOutput .= sprintf($this->getLang('reporter'),htmlentities($issue->user->login));
-    			//$renderOutput .= ' <img src="'.htmlentities($issue->user->avatar_url).'" alt="'.htmlentities($issue->user->login);
-    			//$renderOutput .= '" width="15" height="15">';
-    			//$renderOutput .= ' on ';
-    			$renderOutput .= htmlentities(strftime($conf['dformat'],strtotime($issue->created_at)));
-    			$renderOutput .= '</div></div>'."\n";
-			}
-			$renderOutput .= '</div>';
-		} else {
-			$renderOutput .= "<p>Else case</p>";
-			$renderOutput .= '<p>'.var_export($http->$resp_headers, TRUE).'</p>';
+		// If we don't load the helper, we're doomed.
+		if ( !($loadFromCache = $this->loadHelper('ghissues_apiCacheInterface')) ) {
+			$renderer->doc .= '<p>ghissues helper failed to load</p>';
+			return false;
 		}
+		
+		$renderOutput = $loadFromCache->getRenderedRequest($data['url']);
 		
 		$renderer->doc .= $renderOutput;
 		
         return true;
     }
         
-    private function getSpanClassFromBG($htmlbg) {
-    	$colorval = hexdec($htmlbg);
-
-    	$red = 0xFF & ($colorval >> 0x10);
-    	$green = 0xFF & ($colorval >> 0x08);
-    	$blue = 0xFF & $colorval;
-    	
-    	$lum = 1.0 - ( 0.299 * $red + 0.587 * $green + 0.114 * $blue)/255.0;
-    	
-    	if( $lum < 0.5 ) {
-    		return '"ghissues_plugin_label_light"';
-    	} else {
-    		return '"ghissues_plugin_label_dark"';
-    	}
-    }
-
 }
 
 // vim:ts=4:sw=4:et:

@@ -9,7 +9,7 @@
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 
-class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
+class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 	var $_GH_API_limit;
 	
     /**
@@ -23,15 +23,49 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
                 'name'   => 'checkIssuesCache',
                 'desc'   => 'returns true if page is clear to use the current cache',
                 'params' => array(
-                    'apiUrl' => 'string',
+                    'apiURL' => 'string',
                     'page'   => 'string'
                 ),
                 'return' => array('useCache' => 'boolean')
+            ),
+            array(
+                'name'   => 'checkCacheFreshness',
+                'desc'   => 'returns true if the cache is up-to-date.  Includes API call if required',
+                'params' => array(
+                    'apiURL' => 'string',
+                    'cache (optional)'   => 'class'
+                ),
+                'return' => array('useCache' => 'boolean')
+            ),
+            array(
+                'name'   => 'callGithubAPI',
+                'desc'   => 'makes the API call given by apiUrl. Saves result in a cache after formatting',
+                'params' => array(
+                    'apiURL' => 'string',
+                    'cache (optional)'   => 'class'
+                ),
+                'return' => array('useCache' => 'boolean')
+            ),
+            array(
+                'name'   => 'formatApiResponse',
+                'desc'   => 'takes JSON response from API and returns formatted output in xhtml',
+                'params' => array(
+                    'rawJSON' => 'string',
+                ),
+                'return' => array('outputXML' => 'string')
+            ),
+            array(
+                'name'   => 'getRenderedRequest',
+                'desc'   => 'returns rendered output from an API request, using cache if valid',
+                'params' => array(
+                    'apiURL' => 'string',
+                ),
+                'return' => array('outputXML' => 'string')
             )
         );
     }
 	// Master cache checker.  First checks if the cache expired, then checks if the page is older than the cache
-	public function checkIssuesCache( $apiUrl, $page ) {
+	public function checkIssuesCache( $apiURL, $page ) {
 		return true;
 	}
 	
@@ -63,9 +97,10 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
 		if ( !empty($lastETag) ) {
 			$http->headers['If-None-Match'] = $lastETag;
 		}
-		
-		$apiResp = $http->get($data['url']);
+
+		$apiResp = $http->get($apiURL);
 		$apiHead = array();
+
 		$apiHead = $http->resp_headers;
 		
 		$this->_GH_API_limit = intval($apiHead['x-ratelimit-remaining']);
@@ -76,26 +111,30 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
 			$cache->storeETag($apiHead['etag']); // Update the last time we checked
 			return true;
 		} else if ( $apiStatus == '200' ) { // Updated content!  But will the table change?
-			$cache->storeETag($apiHead['etag']); // Update the last time we checked
-			// Need a call to handle multi-page results
+			// TODO: Need a call to handle multi-page results
 			
-			// Need a call to build the table from the response
-			$newTable = formatApiResponse($apiResp);
+			// Build the actual table using the response, then make sure it has changed.
+			// Because we don't use all information from the resopnse, it is possible only
+			// things we don't check updated.  If that is the case, no need to change the cache
+			$newTable = $this->formatApiResponse($apiResp);
 			
 			if ( $newTable != $cache->retrieveCache() ) {
 				if (!$cache->storeCache($newTable)) {				
 					msg('Unable to save cache file. Hint: disk full; file permissions; safe_mode setting.',-1);
 					return true; // Couldn't save the update, can't reread from new cache
 				}
+				$cache->storeETag($apiHead['etag']); // Update the last time we checked
 				return false;
 			}
-			
+			$cache->storeETag($apiHead['etag']); // Update the last time we checked			
 			return true; // All that for a table that looks the same...
 		} else { // Some other HTTP status, we're not handling. Save old table plus error message
 			// Don't update when we checked in case it was a temporary thing (it probably wasn't though)
 			// $cache->storeETag($apiHead['etag']); // Update the last time we checked
+			var_dump($http);
 			$errorTable  = '<div class=ghissues_plugin_api_err">';
-			$errorTable .= sprintf($this->getLang('badhttpstatus'),htmlentities($apiHead['status']));
+			$errorTable .= htmlentities(strftime($conf['dformat']));
+			$errorTable .= sprintf($this->getLang('badhttpstatus'), htmlentities($apiHead['status']));
 			$errorTable .= '</div>'."\n".$cache->retrieveCache();
 			
 			if (!$cache->storeCache($errorTable)) {				
@@ -104,19 +143,22 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
 			}
 			return false;
 		}
+		// Fallback on true because we don't know what is going on.
 		return true;
 	}
 	
 	public function formatApiResponse($rawJSON) {
+		global $conf;
+		
 		$json = new JSON();
     	$response = $json->decode($rawJSON);
 		
 		// Assume the top is already there, as that can be built by without the API request.
-		$outputXML = "<ul>\n";
+		$outputXML = '<ul class="ghissues_list">'."\n";
 		foreach($response as $issueIdx => $issue) {
 			$outputXML .= '<li class="ghissues_plugin_issue_line">'."\n";
 			$outputXML .= '<div>'."\n";
-			$outputXML .= $this->external_link($issue->html_url, htmlentities('#'.$issue->number.': '.$issue->title), '"ghissues_plugin_issue_title"', '_blank');
+			$outputXML .= $this->external_link($issue->html_url, htmlentities('#'.$issue->number.': '.$issue->title), 'ghissues_plugin_issue_title', '_blank');
 			$outputXML .= "\n".'<span class="ghissues_plugin_issue_labels">';
 			foreach($issue->labels as $label) {
 				$outputXML .= '<span style="background-color:#'.$label->color.'"';
@@ -128,10 +170,17 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
 			$outputXML .= '<div class="ghissues_plugin_issue_report">'."\n";
 			$outputXML .= sprintf($this->getLang('reporter'),htmlentities($issue->user->login));
 			$outputXML .= htmlentities(strftime($conf['dformat'],strtotime($issue->created_at)));
-			$outputXML .= '</div></ul>'."\n";
 		}
+		$outputXML .= '</div></ul>'."\n";
 		
 		return $outputXML;
+	}
+	
+	public function getRenderedRequest($apiURL) {
+		$outputCache = new cache_ghissues_api($apiURL);
+		
+		$this->checkCacheFreshness($apiURL, $outputCache);
+		return $outputCache->retrieveCache();
 	}
 	
 	private function _getSpanClassFromBG($htmlbg) {
@@ -157,7 +206,7 @@ class cache_ghissues_api extends cache {
 	
 	public function cache_ghissues_api($requestURL) {
 		parent::cache($requestURL,'.ghissues');
-		$this->$etag = substr($this->cache, 0, -9).'.etag';
+		$this->etag = substr($this->cache, 0, -9).'.etag';
 	}
 	
 	public function retrieveETag($clean=true) {
