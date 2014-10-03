@@ -28,8 +28,9 @@
 .ghissues_plugin_box {
 	color:__text__;
 	border:__border__;
+	background-color:__background_alt__;
 	border-style:solid;
-	border-width:1px;
+	border-width:1.5px;
 	border-radius:5px;
 	padding:0px;
 }
@@ -38,16 +39,26 @@
 	color:__text__;
 	font-size:larger;
 	font-weight:bold;
-	background-color:__background_alt__;
 	border-style:none;
-	padding:0.3em 0.3em 0.3em 0.8em;
+	margin:0.1em;
+	padding:0.2em 0.2em 0.2em 0.7em;
+}
+
+.ghissues_plugin_box_footer {
+	color:__text__;
+	font-size:smaller;
+	border-style:none;
+	margin:0.1em;
+	padding:0.1em 0.1em 0.1em 0.7em;
 }
 .ghissues_plugin_issue_line {
 	color:__text__;
 	border:__border__;
+	background-color:__background__;
 	border-style:solid none none none;
 	border-width:1px;
 	padding:0.3em 0.3em 0.3em 0.8em;
+	margin:0px;
 }
 
 .ghissues_plugin_issue_title {

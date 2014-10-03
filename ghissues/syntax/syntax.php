@@ -93,14 +93,17 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
 		if ($mode != 'xhtml') return false;
 		global $conf;
 		
+		$renderOutput  = '<div class="ghissues_plugin_box">'."\n".'<div class="ghissues_plugin_box_header">';
+		$renderOutput .= $data['header']."</div>\n";
 		// If we don't load the helper, we're doomed.
 		if ( !($loadFromCache = $this->loadHelper('ghissues_apiCacheInterface')) ) {
 			$renderer->doc .= '<p>ghissues helper failed to load</p>';
 			return false;
 		}
 		
-		$renderOutput = $loadFromCache->getRenderedRequest($data['url']);
-		
+		$renderOutput .= $loadFromCache->getRenderedRequest($data['url']);
+		$renderOutput .= '<div class="ghissues_plugin_box_footer">I just want to see what happens if there is text here</div>';
+		$renderOutput .= '</div>';
 		$renderer->doc .= $renderOutput;
 		
         return true;
