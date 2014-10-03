@@ -10,7 +10,7 @@
 if(!defined('DOKU_INC')) die();
 
 class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
-	var _GH_API_limit;
+	var $_GH_API_limit;
 	
     /**
      * Return info about supported methods in this Helper Plugin
@@ -96,7 +96,7 @@ class helper_plugin_ghissues_api_cache_interface extends DokuWiki_Plugin {
 			// $cache->storeETag($apiHead['etag']); // Update the last time we checked
 			$errorTable  = '<div class=ghissues_plugin_api_err">';
 			$errorTable .= sprintf($this->getLang('badhttpstatus'),htmlentities($apiHead['status']));
-			$errorTable .= .'</div>'."\n".$cache->retrieveCache();
+			$errorTable .= '</div>'."\n".$cache->retrieveCache();
 			
 			if (!$cache->storeCache($errorTable)) {				
 				msg('Unable to save cache file. Hint: disk full; file permissions; safe_mode setting.',-1);
