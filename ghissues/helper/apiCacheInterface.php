@@ -71,12 +71,13 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 	
 	// return true if still fresh.  Otherwise you'll confuse the bears
 	public function checkCacheFreshness($apiURL, &$cache=NULL) {
+		//msg('In checkCacheFreshness'.time(),-1);
 		if ( !isset($cache) ) {
 			$cache = new cache_ghissues_api($apiURL);
 		}
-		
+
 		// Check if we've done a cached API call recently.  If you have, the cache is plenty fresh
-		if ( $cache->sniffETag($this->getConf['ghissuerefresh']) ) return true;
+		if ( $cache->sniffETag($this->getConf('ghissuerefresh')) ) return true;
 		
 		// Old cache, time to check in with GH.
 		return $this->callGithubAPI($apiURL, $cache);
@@ -84,34 +85,49 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 	
 	// return true if no update since the last time we asked.
 	public function callGithubAPI($apiURL, &$cache=NULL) {
+		//msg('In callGithubAPI'.time(),-1);
 		if ( !isset($cache) ) {
 			$cache = new cache_ghissues_api($apiURL);
 		}
-		
+
+		//msg('Make HTTP Client'.time(),-1);		
 		$http = new DokuHTTPClient();
+		//msg('Made HTTP Client'.time(),-1);
 		
 		$http->agent = substr($http->agent,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
 		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
+		//msg('Set Base Headers'.time(),-1);
 		
 		$lastETag = $cache->retrieveETag();
+		//msg('Cache etag retrieval'.time(),-1);
 		if ( !empty($lastETag) ) {
 			$http->headers['If-None-Match'] = $lastETag;
 		}
+		//msg('Start request'.time(),-1);
 
 		$apiResp = $http->get($apiURL);
 		$apiHead = array();
+		//msg('madeRequest'.time(),-1);
 
 		$apiHead = $http->resp_headers;
 		
 		$this->_GH_API_limit = intval($apiHead['x-ratelimit-remaining']);
 		
 		$apiStatus = substr($apiHead['status'],0,3);
-		
+
 		if ( $apiStatus == '304' ) { // No modification
 			$cache->storeETag($apiHead['etag']); // Update the last time we checked
 			return true;
 		} else if ( $apiStatus == '200' ) { // Updated content!  But will the table change?
-			// TODO: Need a call to handle multi-page results
+			// Collate results if GitHub paginated them.  (Walk the URL ladder)
+			if ( !empty($apiHead['link']) ) {
+				$nextLink = $apiHead['link'];
+				$matches = array();
+				if(preg_match('/<(.*?)>; rel="next"/', $nextLink, $matches)) {
+					$apiResp = substr($apiResp,0,-1);
+					$apiResp .= $this->_chaseGithubNextLinks($http, $matches[1]);
+				}
+			};
 			
 			// Build the actual table using the response, then make sure it has changed.
 			// Because we don't use all information from the resopnse, it is possible only
@@ -131,7 +147,6 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 		} else { // Some other HTTP status, we're not handling. Save old table plus error message
 			// Don't update when we checked in case it was a temporary thing (it probably wasn't though)
 			// $cache->storeETag($apiHead['etag']); // Update the last time we checked
-			var_dump($http);
 			$errorTable  = '<div class=ghissues_plugin_api_err">';
 			$errorTable .= htmlentities(strftime($conf['dformat']));
 			$errorTable .= sprintf($this->getLang('badhttpstatus'), htmlentities($apiHead['status']));
@@ -148,7 +163,15 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 	}
 	
 	public function formatApiResponse($rawJSON) {
+		//msg('In formatApiResponse'.time(),-1);
 		global $conf;
+		
+		if ($rawJSON == '[]') {
+			$outputXML  = '<div class="ghissues_plugin_issue_line ghissues_plugin_issue_title">';
+			$outputXML .= $this->getLang('noIssues');
+			$outputXML .= '</div>'."\n";
+			return $outputXML;
+		}
 		
 		$json = new JSON();
     	$response = $json->decode($rawJSON);
@@ -170,15 +193,18 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 			$outputXML .= '<div class="ghissues_plugin_issue_report">'."\n";
 			$outputXML .= sprintf($this->getLang('reporter'),htmlentities($issue->user->login));
 			$outputXML .= htmlentities(strftime($conf['dformat'],strtotime($issue->created_at)));
+			$outpulXML .= '</div>'."\n".'</li>'."\n";
 		}
-		$outputXML .= '</div></ul>'."\n";
+		$outputXML .= '</ul>'."\n";
 		
 		return $outputXML;
 	}
 	
 	public function getRenderedRequest($apiURL) {
+		//msg('In getRenderedRequest'.time(),-1);
 		$outputCache = new cache_ghissues_api($apiURL);
 		
+		// Make sure we've got a good copy
 		$this->checkCacheFreshness($apiURL, $outputCache);
 		return $outputCache->retrieveCache();
 	}
@@ -197,6 +223,34 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
     	} else {
     		return '"ghissues_dark"';
     	}
+    }
+    
+    private function _chaseGithubNextLinks(&$http, $apiURL) {
+		//msg('In _chaseGithubNextLinks'.time(),-1);
+		$http->agent = substr($http->agent,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
+		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
+		unset($http->headers['If-None-Match']);
+		$apiNext = $http->get($apiURL);
+
+		$apiHead = array();
+		$apiHead = $http->resp_headers;
+		
+		$this->_GH_API_limit = intval($apiHead['x-ratelimit-remaining']);
+		
+		$apiStatus = substr($apiHead['status'],0,3);
+		// If request somehow failed, do it quietly since the first one didn't
+		if ( $apiStatus != '200' ) return ']';
+		
+		// If we're on the last page, there will be no "next"
+		if ( !empty($apiHead['link']) ) {
+			$nextLink = $apiHead['link'];
+			$matches = array();
+			if(preg_match('/<(.*?)>; rel="next"/', $nextLink, $matches)) {
+				return ','.substr($apiNext,1,-1).$this->_chaseGithubNextLinks($http, $matches[1]);
+			}
+		};
+				
+		return ','.substr($apiNext,1);
     }
 }
 
@@ -223,8 +277,7 @@ class cache_ghissues_api extends cache {
 	public function sniffETag($expireInterval) {
 		if ( $expireInterval <  0 ) return true;
 		if ( $expireInterval == 0 ) return false;
-		
-		if (!($this->_etag_time = @filemtime($this->cache))) return false;  // Check if cache is there
+		if (!($this->_etag_time = @filemtime($this->etag))) return false;  // Check if cache is there
 		if ( (time() - $this->_etag_time) > $expireInterval ) return false; // Past Sell-By
 		return true;
 	}

@@ -7,7 +7,7 @@
 
 // keys need to match the config setting name
 $lang['ghissueuser']    = "GitHub Account Username";                // Github Username, used for User-Agent and Authentication
-$meta['ghissuerefresh'] = "GitHub Cache Expiry Interval (seconds)"; // Min time between API calls (per unique request URL)
+$lang['ghissuerefresh'] = "GitHub Cache Expiry Interval (seconds)"; // Min time between API calls (per unique request URL)
 
 
 //Setup VIM: ex: et ts=4 :

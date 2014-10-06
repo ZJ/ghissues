@@ -55,17 +55,61 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
         $repoPath = htmlentities($exploded[0]);
         
         unset($exploded[0]);
-        $theRest = '';
-        foreach($exploded as $item) {
-        	$theRest .= $item.' ';
-        }
+        $theRest = implode(" ",$exploded);
         
         $filters='';
+		
+		// Check if we're filtering based on issue state
+        $headerState = $this->getLang('open');
+        $matches = array();
+        if ( preg_match("/\bstate:(open|closed|all)\b/", $theRest, $matches) ) {
+        	switch($matches[1]) {
+        		case "open":
+        			$filters="?state=open";
+        			break;
+        		case "closed":
+        			$filters="?state=closed";
+        			$headerState = $this->getLang('closed');
+        			break;
+        		case "all":
+        			$filters="?state=all";
+        			$headerState = $this->getLang('all');
+        			break;
+        	}
+        }
         
-        $wholeHeader = 'Open Issues in /'.htmlentities($repoPath.' Plus:'.$theRest);
+        // Now check for label processing, matches "label:" through end of line
+        $headerLabel = '';
+        $matches = array();
+        $codedLabels = array();
+        if ( preg_match("/\blabels?:(.*\z)/", $theRest, $matches) ) {
+        	if( $filters == '' ) {
+        		$filters = '?labels=';
+        	} else {
+        		$filters .= '&labels=';
+        	}
+        	$rawLabels = array();
+        	$rawLabels = preg_split('~\\\\.(*SKIP)(*FAIL)|,~s', trim($matches[1]));
+        	if ( count($rawLabels) > 1 ) {
+        		$headerLabel = $this->getLang('withLabels');
+        	} else {
+        		$headerLabel = $this->getLang('withLabel');        	
+        	}
+        	foreach ($rawLabels as $thisIndex => $thisLabel) {
+        		$codedLabels[$thisIndex] = urlencode($thisLabel);
+        	}
+        	$headerLabel .= htmlentities(implode($this->getLang('and'),$rawLabels));
+        	$filters .= implode(',',$codedLabels);
+        }
+        
         $url = 'https://api.github.com/repos/'.$repoPath.'/issues'.$filters;
-        $urlHash = hash('sha1',$url);
-        $data = array( 'header' => $wholeHeader, 'url' => $url, 'hash' => $urlHash );
+		$httpUrl = 'http://www.github.com/'.$repoPath.'/issues'.$filters;
+        
+        $buildHeader = $headerState.$this->getLang('issuesIn');
+        
+        $wholeHeader = $buildHeader.htmlentities($repoPath).$headerLabel;
+        $wholeFooter = $this->external_link($httpUrl, $this->getLang('viewOnGH'), NULL, '_blank');
+        $data = array( 'header' => $wholeHeader, 'url' => $url, 'footer' => $wholeFooter );
 
         return $data;
     }
@@ -84,7 +128,6 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
         	$hashpair = array( $data['url'] => hash('md5', $data['url']) );
         	
         	if (!isset($renderer->meta['plugin_ghissues_apicalls'])) $renderer->meta['plugin_ghissues_apicalls'] = array();
-        	//$renderer->meta['plugin_ghissues_apicalls'] = array();
         	$renderer->meta['plugin_ghissues_apicalls'] = array_unique(array_merge($renderer->meta['plugin_ghissues_apicalls'], $hashpair));
 
         	return true;
@@ -102,7 +145,7 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
 		}
 		
 		$renderOutput .= $loadFromCache->getRenderedRequest($data['url']);
-		$renderOutput .= '<div class="ghissues_plugin_box_footer">I just want to see what happens if there is text here</div>';
+		$renderOutput .= '<div class="ghissues_plugin_box_footer">'.$data['footer'].'</div>';
 		$renderOutput .= '</div>';
 		$renderer->doc .= $renderOutput;
 		

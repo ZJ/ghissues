@@ -2,6 +2,9 @@
 	list-style-type: none;
 	padding: 0px;
 	margin: 0px;
+	border:__border__;	
+	border-style:none none solid none;
+	border-width:1px;
 }
 
 .ghissues_plugin_labels {
@@ -33,6 +36,7 @@
 	border-width:1.5px;
 	border-radius:5px;
 	padding:0px;
+	margin:1em 0em 1em 0em;
 }
 
 .ghissues_plugin_box_header {
@@ -47,7 +51,6 @@
 .ghissues_plugin_box_footer {
 	color:__text__;
 	font-size:smaller;
-	border-style:none;
 	margin:0.1em;
 	padding:0.1em 0.1em 0.1em 0.7em;
 }
