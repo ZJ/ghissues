@@ -9,7 +9,7 @@
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 
-class action_plugin_ghissues_cache_handler extends DokuWiki_Action_Plugin {
+class action_plugin_ghissues_cacheHandler extends DokuWiki_Action_Plugin {
 
     /**
      * Registers a callback function for a given event
@@ -33,6 +33,22 @@ class action_plugin_ghissues_cache_handler extends DokuWiki_Action_Plugin {
      */
 
     public function handle_parser_cache_use(Doku_Event &$event, $param) {
+		$pageCache =& $event->data;
+		
+		//dbglog("ghissues: In handle_parser_cache_use");
+		
+		// We only do anything if it is rendering xhtml
+		if( !isset($pageCache->page) ) return;
+		if( !isset($pageCache->mode) || $pageCache->mode != 'xhtml' ) return;
+		
+		$apiRequests = p_get_metadata($pageCache->page, 'plugin_ghissues_apicalls');
+		if ( !is_array($apiRequests) ) return; // No ghissues api calls
+		
+		$loadFromCache = $this->loadHelper('ghissues_apiCacheInterface');
+		foreach($apiRequests as $apiURL) {
+			$pageCache->depends['files'][]= $loadFromCache->checkIssuesCache($apiURL);
+			//dbglog('ghissues: '.$loadFromCache->checkIssuesCache($apiURL));
+		}
     	return;
     }
 

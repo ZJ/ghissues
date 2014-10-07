@@ -124,6 +124,7 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
      */
     public function render($mode, Doku_Renderer &$renderer, $data) {
         if($mode == 'metadata') {
+        	//dbglog("In render metadata");
         	
         	$hashpair = array( $data['url'] => hash('md5', $data['url']) );
         	
@@ -135,6 +136,7 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
 		
 		if ($mode != 'xhtml') return false;
 		global $conf;
+        //dbglog("ghissues: In render xhtml");
 		
 		$renderOutput  = '<div class="ghissues_plugin_box">'."\n".'<div class="ghissues_plugin_box_header">';
 		$renderOutput .= $data['header']."</div>\n";

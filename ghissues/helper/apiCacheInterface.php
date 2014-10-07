@@ -21,12 +21,11 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
         return array(
             array(
                 'name'   => 'checkIssuesCache',
-                'desc'   => 'returns true if page is clear to use the current cache',
+                'desc'   => 'Takes an api URL, checks local cache for up-to-date, then returns cache path for use in depends["files"]',
                 'params' => array(
                     'apiURL' => 'string',
-                    'page'   => 'string'
                 ),
-                'return' => array('useCache' => 'boolean')
+                'return' => array('cachePath' => 'string')
             ),
             array(
                 'name'   => 'checkCacheFreshness',
@@ -64,14 +63,16 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
             )
         );
     }
-	// Master cache checker.  First checks if the cache expired, then checks if the page is older than the cache
-	public function checkIssuesCache( $apiURL, $page ) {
-		return true;
+	// Master cache checker.  First checks if the cache expired, then checks if the page is older than the (possibly updated) cache
+	public function checkIssuesCache( $apiURL ) {
+		$cache = new cache_ghissues_api($apiURL);
+		$this->checkCacheFreshness($apiURL, $cache);
+		return ($cache->cache);
 	}
 	
 	// return true if still fresh.  Otherwise you'll confuse the bears
 	public function checkCacheFreshness($apiURL, &$cache=NULL) {
-		//msg('In checkCacheFreshness'.time(),-1);
+		//dbglog('ghissues: In checkCacheFreshness');
 		if ( !isset($cache) ) {
 			$cache = new cache_ghissues_api($apiURL);
 		}
@@ -85,35 +86,38 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 	
 	// return true if no update since the last time we asked.
 	public function callGithubAPI($apiURL, &$cache=NULL) {
-		//msg('In callGithubAPI'.time(),-1);
+		//dbglog('ghissues: In callGithubAPI');
 		if ( !isset($cache) ) {
 			$cache = new cache_ghissues_api($apiURL);
 		}
 
-		//msg('Make HTTP Client'.time(),-1);		
+		//dbglog('ghissues: Make HTTP Client');		
 		$http = new DokuHTTPClient();
-		//msg('Made HTTP Client'.time(),-1);
+		//dbglog('ghissues: Made HTTP Client');
 		
-		$http->agent = substr($http->agent,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
+		$http->agent = substr($http->agent,0,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
 		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
-		//msg('Set Base Headers'.time(),-1);
+		$http->keep_alive = FALSE;
+		//dbglog('ghissues: Set Base Headers');
 		
 		$lastETag = $cache->retrieveETag();
-		//msg('Cache etag retrieval'.time(),-1);
+		//dbglog('ghissues: Cache etag retrieval: '.$lastETag);
 		if ( !empty($lastETag) ) {
 			$http->headers['If-None-Match'] = $lastETag;
 		}
-		//msg('Start request'.time(),-1);
+		//dbglog('ghissues: Start request');
 
 		$apiResp = $http->get($apiURL);
 		$apiHead = array();
-		//msg('madeRequest'.time(),-1);
+		//dbglog('ghissues: madeRequest');
 
 		$apiHead = $http->resp_headers;
-		
+		//dbglog('ghissues: '.var_export($http, TRUE));
 		$this->_GH_API_limit = intval($apiHead['x-ratelimit-remaining']);
+		//dbglog('ghissues: rateLimit='.$this->_GH_API_limit);
 		
 		$apiStatus = substr($apiHead['status'],0,3);
+		//dbglog('ghissues: status='.$apiHead['status']);
 
 		if ( $apiStatus == '304' ) { // No modification
 			$cache->storeETag($apiHead['etag']); // Update the last time we checked
@@ -136,7 +140,7 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 			
 			if ( $newTable != $cache->retrieveCache() ) {
 				if (!$cache->storeCache($newTable)) {				
-					msg('Unable to save cache file. Hint: disk full; file permissions; safe_mode setting.',-1);
+					//dbglog('ghissues: Unable to save cache file. Hint: disk full; file permissions; safe_mode setting.',-1);
 					return true; // Couldn't save the update, can't reread from new cache
 				}
 				$cache->storeETag($apiHead['etag']); // Update the last time we checked
@@ -153,7 +157,7 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 			$errorTable .= '</div>'."\n".$cache->retrieveCache();
 			
 			if (!$cache->storeCache($errorTable)) {				
-				msg('Unable to save cache file. Hint: disk full; file permissions; safe_mode setting.',-1);
+				//dbglog('ghissues: Unable to save cache file. Hint: disk full; file permissions; safe_mode setting.',-1);
 				return true; // Couldn't save the update, can't reread from new cache
 			}
 			return false;
@@ -163,7 +167,7 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 	}
 	
 	public function formatApiResponse($rawJSON) {
-		//msg('In formatApiResponse'.time(),-1);
+		//dbglog('ghissues: In formatApiResponse');
 		global $conf;
 		
 		if ($rawJSON == '[]') {
@@ -201,7 +205,7 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 	}
 	
 	public function getRenderedRequest($apiURL) {
-		//msg('In getRenderedRequest'.time(),-1);
+		//dbglog('ghissues: In getRenderedRequest');
 		$outputCache = new cache_ghissues_api($apiURL);
 		
 		// Make sure we've got a good copy
@@ -226,7 +230,7 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
     }
     
     private function _chaseGithubNextLinks(&$http, $apiURL) {
-		//msg('In _chaseGithubNextLinks'.time(),-1);
+		//dbglog('ghissues: In _chaseGithubNextLinks');
 		$http->agent = substr($http->agent,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
 		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
 		unset($http->headers['If-None-Match']);
@@ -270,7 +274,7 @@ class cache_ghissues_api extends cache {
 	public function storeETag($etagValue) {
 		if ( $this->_nocache ) return false;
 		
-		return io_savefile($this->etag, $etagValue);
+		return io_saveFile($this->etag, $etagValue);
 	}
 	
 	// Sniff to see if it is rotten (expired). <0 means always OK, 0 is never ok.
