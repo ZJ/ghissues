@@ -1,9 +1,9 @@
-ghissues Plugin for DokuWiki
+ghissues plugin for DokuWiki
 
 Uses GitHub API to display a list of current issues for a repository.
 
 All documentation for this plugin can be found at
-http://www.github.com/ZJ/GithubIssues
+http://www.github.com/ZJ/ghissues
 
 If you install this plugin manually, make sure it is installed in
 lib/plugins/ghissues/ - if the folder is called different it
