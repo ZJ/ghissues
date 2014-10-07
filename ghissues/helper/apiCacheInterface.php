@@ -95,6 +95,12 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 		$http = new DokuHTTPClient();
 		//dbglog('ghissues: Made HTTP Client');
 		
+		$oauth_token = $this->getConf('ghissueoauth');
+		if ( !empty($oauth_token) ) {
+			$http->user = $oauth_token;
+			$http->pass = 'x-oauth-basic';
+		}
+		
 		$http->agent = substr($http->agent,0,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
 		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
 		$http->keep_alive = FALSE;
@@ -112,7 +118,8 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 		//dbglog('ghissues: madeRequest');
 
 		$apiHead = $http->resp_headers;
-		//dbglog('ghissues: '.var_export($http, TRUE));
+		//dbglog('ghissues: '.$apiURL);
+		//dbglog('ghissues: '.var_export($http->resp_headers, TRUE));
 		$this->_GH_API_limit = intval($apiHead['x-ratelimit-remaining']);
 		//dbglog('ghissues: rateLimit='.$this->_GH_API_limit);
 		
@@ -231,7 +238,7 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
     
     private function _chaseGithubNextLinks(&$http, $apiURL) {
 		//dbglog('ghissues: In _chaseGithubNextLinks');
-		$http->agent = substr($http->agent,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
+		$http->agent = substr($http->agent,0,-1).' via ghissue plugin from user '.$this->getConf('ghissueuser').')';
 		$http->headers['Accept'] = 'application/vnd.github.v3.text+json';
 		unset($http->headers['If-None-Match']);
 		$apiNext = $http->get($apiURL);

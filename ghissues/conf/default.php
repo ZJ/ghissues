@@ -7,3 +7,4 @@
 
 $conf['ghissueuser']    = '';         // Github Username, used for User-Agent and Authentication
 $conf['ghissuerefresh'] = 10*60;      // Min time between API calls (per unique request URL)
+$conf['ghissueoauth']   = '';         // OAuth token to use in API calls

@@ -45,7 +45,8 @@ class action_plugin_ghissues_cacheHandler extends DokuWiki_Action_Plugin {
 		if ( !is_array($apiRequests) ) return; // No ghissues api calls
 		
 		$loadFromCache = $this->loadHelper('ghissues_apiCacheInterface');
-		foreach($apiRequests as $apiURL) {
+		//dbglog('ghissues: handleParser '.var_export($apiRequests, TRUE));
+		foreach($apiRequests as $apiURL => $apiHash) {
 			$pageCache->depends['files'][]= $loadFromCache->checkIssuesCache($apiURL);
 			//dbglog('ghissues: '.$loadFromCache->checkIssuesCache($apiURL));
 		}
