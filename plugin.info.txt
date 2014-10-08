@@ -1,7 +1,7 @@
 base   ghissues
 author Zach Smith
 email  zsmith12@umd.edu
-date   2014-10-07
+date   2014-10-08
 name   ghissues plugin
 desc   Uses GitHub API to display a list of current issues for a repository.
-url    http://www.github.com/ZJ/ghissues
+url    http://www.dokuwiki.org/plugin:ghissues
