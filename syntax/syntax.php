@@ -35,7 +35,7 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
      * @param string $mode Parser mode
      */
     public function connectTo($mode) {
-        $this->Lexer->addSpecialPattern('\{\{ghissue\b.*?}}',$mode,'plugin_ghissues_syntax');
+        $this->Lexer->addSpecialPattern('\{\{ghissues\b.*?}}',$mode,'plugin_ghissues_syntax');
     }
 
     /**
@@ -48,7 +48,7 @@ class syntax_plugin_ghissues_syntax extends DokuWiki_Syntax_Plugin {
      * @return array Data for the renderer
      */
     public function handle($match, $state, $pos, Doku_Handler &$handler){
-        $dropwrapper = trim(substr(substr($match,10),0,-2));
+        $dropwrapper = trim(substr(substr($match,11),0,-2));
         
         $exploded = explode(' ',$dropwrapper);
         
