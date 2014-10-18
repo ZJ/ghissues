@@ -178,16 +178,16 @@ class helper_plugin_ghissues_apiCacheInterface extends DokuWiki_Plugin {
 		global $conf;
 		
 		if ($rawJSON == '[]') {
-			$outputXML  = '<div class="ghissues_plugin_issue_line ghissues_plugin_issue_title">';
+			$outputXML  = '<div class="ghissues_plugin_issue_line"><div class="ghissues_plugin_issue_title">';
 			$outputXML .= $this->getLang('noIssues');
-			$outputXML .= '</div>'."\n";
+			$outputXML .= '</div></div>'."\n";
 			return $outputXML;
 		}
 		
 		$json = new JSON();
     	$response = $json->decode($rawJSON);
 		
-		// Assume the top is already there, as that can be built by without the API request.
+		// Assume the top is already there, as that can be built without the API request.
 		$outputXML = '<ul class="ghissues_list">'."\n";
 		foreach($response as $issueIdx => $issue) {
 			$outputXML .= '<li class="ghissues_plugin_issue_line">'."\n";
